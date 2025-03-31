@@ -25,6 +25,7 @@ std::vector<SDL_Rect> apples;
 int score = 0;
 int highScore = 0;
 
+// Initializes SDL and other component
 bool init() {
     if (SDL_Init(SDL_INIT_EVERYTHING) < 0) return false;
     if (TTF_Init() == -1) return false;
@@ -41,6 +42,7 @@ bool init() {
     return true;
 }
 
+// Renders text on screen
 void renderText(const std::string& text, int x, int y) {
     SDL_Color white = {255, 255, 255, 255};
     SDL_Surface* surface = TTF_RenderText_Solid(font, text.c_str(), white);
@@ -55,6 +57,7 @@ void renderText(const std::string& text, int x, int y) {
     SDL_DestroyTexture(texture);
 }
 
+// Reset the game when snake collides with its' own body or the wall
 void resetGame() {
     head.x = SCREEN_WIDTH / 2;
     head.y = SCREEN_HEIGHT / 2;
@@ -64,10 +67,12 @@ void resetGame() {
     snake.clear();
 }
 
+// game loop
 void gameLoop() {
     SDL_Event event;
     bool running = true;
 
+    // Generate initial apples
     for (int i = 0; i < 10; ++i) {
         apples.emplace_back(SDL_Rect{rand() % (SCREEN_WIDTH / TILE_SIZE) * TILE_SIZE,
                                      rand() % (SCREEN_HEIGHT / TILE_SIZE) * TILE_SIZE, TILE_SIZE, TILE_SIZE});
@@ -84,6 +89,7 @@ void gameLoop() {
             }
         }
 
+        // Update snake position
         switch (dir) {
             case UP: head.y -= TILE_SIZE; break;
             case DOWN: head.y += TILE_SIZE; break;
@@ -91,11 +97,13 @@ void gameLoop() {
             case RIGHT: head.x += TILE_SIZE; break;
         }
 
+        // Wall collision check
         if (head.x < 0 || head.x >= SCREEN_WIDTH || head.y < 0 || head.y >= SCREEN_HEIGHT) {
             if (score > highScore) highScore = score;
             resetGame();
         }
 
+        // Apple collision
         for (auto& apple : apples) {
             if (head.x == apple.x && head.y == apple.y) {
                 size += 5;
@@ -105,6 +113,7 @@ void gameLoop() {
             }
         }
 
+        // Snake self-collision check
         for (const auto& segment : snake) {
             if (head.x == segment.x && head.y == segment.y) {
                 if (score > highScore) highScore = score;
@@ -112,24 +121,26 @@ void gameLoop() {
             }
         }
 
+        // Add new head to snake body
         snake.push_front(head);
         while (snake.size() > static_cast<size_t>(size)) {
             snake.pop_back();
         }
 
-        SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255);
+        // Render the game
+        SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255); //set background as black
         SDL_RenderClear(renderer);
 
-        SDL_SetRenderDrawColor(renderer, 255, 255, 255, 255);
+        SDL_SetRenderDrawColor(renderer, 255, 255, 255, 255); //set snake as white
         for (const auto& segment : snake) {
             SDL_RenderFillRect(renderer, &segment);
         }
 
-        SDL_SetRenderDrawColor(renderer, 255, 0, 0, 255);
+        SDL_SetRenderDrawColor(renderer, 255, 0, 0, 255); //set apple as red
         for (const auto& apple : apples) {
             SDL_RenderFillRect(renderer, &apple);
         }
-
+        
         renderText("Score: " + std::to_string(score), 10, 10);
         renderText("High Score: " + std::to_string(highScore), 10, 50);
 
@@ -138,6 +149,7 @@ void gameLoop() {
     }
 }
 
+// Shut down SDL2 and SDL2_TTF
 void cleanup() {
     SDL_DestroyRenderer(renderer);
     SDL_DestroyWindow(window);
@@ -148,7 +160,7 @@ void cleanup() {
 
 int main(int argc, char* argv[]) {
     if (!init()) {
-        printf("Failed to initialize SDL!\n");
+        printf("Failed at init()");
         return 1;
     }
 
