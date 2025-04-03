@@ -24,6 +24,7 @@ std::vector<SDL_Rect> apples;
 
 int score = 0;
 int highScore = 0;
+bool paused = false;
 
 // Initializes SDL and other component
 bool init() {
@@ -46,11 +47,9 @@ bool init() {
 void renderText(const std::string& text, int x, int y) {
     SDL_Color white = {255, 255, 255, 255};
     SDL_Surface* surface = TTF_RenderText_Solid(font, text.c_str(), white);
-    if (!surface) return;
-
+    
     SDL_Texture* texture = SDL_CreateTextureFromSurface(renderer, surface);
     SDL_FreeSurface(surface);
-    if (!texture) return;
 
     SDL_Rect destRect = {x, y, 200, 50};
     SDL_RenderCopy(renderer, texture, NULL, &destRect);
@@ -71,6 +70,7 @@ void resetGame() {
 void gameLoop() {
     SDL_Event event;
     bool running = true;
+    int speedDelay = 25;  // Base speed delay
 
     // Generate initial apples
     for (int i = 0; i < 10; ++i) {
@@ -86,7 +86,17 @@ void gameLoop() {
                 if (event.key.keysym.sym == SDLK_DOWN && dir != UP) dir = DOWN;
                 if (event.key.keysym.sym == SDLK_LEFT && dir != RIGHT) dir = LEFT;
                 if (event.key.keysym.sym == SDLK_RIGHT && dir != LEFT) dir = RIGHT;
+                if (event.key.keysym.sym == SDLK_SPACE) paused = !paused;
             }
+        }
+
+        if (paused) {
+            SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255);
+            SDL_RenderClear(renderer);
+            renderText("PAUSED", SCREEN_WIDTH / 2 - 50, SCREEN_HEIGHT / 2);
+            SDL_RenderPresent(renderer);
+            SDL_Delay(100); // Prevent CPU overload
+            continue;
         }
 
         // Update snake position
@@ -127,29 +137,33 @@ void gameLoop() {
             snake.pop_back();
         }
 
+        // Adjust speed based on score
+        speedDelay = std::max(5, 25 - score / 5);  // Minimum delay of 5ms
+
         // Render the game
-        SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255); //set background as black
+        SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255);
         SDL_RenderClear(renderer);
 
-        SDL_SetRenderDrawColor(renderer, 255, 255, 255, 255); //set snake as white
+        SDL_SetRenderDrawColor(renderer, 255, 255, 255, 255);
         for (const auto& segment : snake) {
             SDL_RenderFillRect(renderer, &segment);
         }
 
-        SDL_SetRenderDrawColor(renderer, 255, 0, 0, 255); //set apple as red
+        SDL_SetRenderDrawColor(renderer, 255, 0, 0, 255);
         for (const auto& apple : apples) {
             SDL_RenderFillRect(renderer, &apple);
         }
         
         renderText("Score: " + std::to_string(score), 10, 10);
         renderText("High Score: " + std::to_string(highScore), 10, 50);
+        renderText("Speed: " + std::to_string(25 - speedDelay), 10, 90);
+        renderText("Press SPACE to Pause", 10, 130);
 
         SDL_RenderPresent(renderer);
-        SDL_Delay(25);
+        SDL_Delay(speedDelay);
     }
 }
 
-// Shut down SDL2 and SDL2_TTF
 void cleanup() {
     SDL_DestroyRenderer(renderer);
     SDL_DestroyWindow(window);
